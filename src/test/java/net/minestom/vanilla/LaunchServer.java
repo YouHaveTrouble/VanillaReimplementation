@@ -19,6 +19,8 @@ import java.io.IOException;
 
 public class LaunchServer {
 
+
+
     public static void main(String[] args) throws IOException {
         MinecraftServer minecraftServer = MinecraftServer.init();
 
@@ -33,6 +35,7 @@ public class LaunchServer {
         NetherPortal.registerData(MinecraftServer.getDataManager());
         LootTableManager lootTableManager = MinecraftServer.getLootTableManager();
         VanillaLootTables.register(lootTableManager);
+
 
         MinecraftServer.getStorageManager().defineDefaultStorageSystem(FileSystemStorage::new);
 

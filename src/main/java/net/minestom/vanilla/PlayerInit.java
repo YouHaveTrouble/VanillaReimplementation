@@ -28,6 +28,8 @@ import net.minestom.server.world.DimensionType;
 import net.minestom.vanilla.anvil.AnvilChunkLoader;
 import net.minestom.vanilla.blocks.NetherPortalBlock;
 import net.minestom.vanilla.blocks.VanillaBlocks;
+import net.minestom.vanilla.damage.DefaultDamageValues;
+import net.minestom.vanilla.damage.WeaponStats;
 import net.minestom.vanilla.dimensions.VanillaDimensionTypes;
 import net.minestom.vanilla.generation.VanillaTestGenerator;
 import net.minestom.vanilla.instance.VanillaExplosion;
@@ -166,6 +168,30 @@ public class PlayerInit {
                 itemEntity.setInstance(player.getInstance());
                 Vector velocity = player.getPosition().clone().getDirection().multiply(6);
                 itemEntity.setVelocity(velocity);
+            });
+
+            // Basic combat
+            player.addEventCallback(EntityAttackEvent.class, event -> {
+                if (event.getSource() instanceof LivingEntity) {
+
+                    LivingEntity attacker = (LivingEntity) event.getSource();
+
+                    float damage;
+
+                    try {
+                        WeaponStats stats = DefaultDamageValues.getDamageValues().get(attacker.getItemInMainHand().getMaterial());
+                        damage = stats.getAttackDamage();
+                    } catch (Exception e) {
+                        damage = 1F;
+                    }
+
+                    if (event.getTarget() instanceof LivingEntity) {
+                        LivingEntity victim = (LivingEntity) event.getTarget();
+                        System.out.println(victim.getHealth());
+                        victim.damage(DamageType.fromEntity(event.getSource()), damage);
+                        System.out.println(victim.getHealth());
+                    }
+                }
             });
 
         });
