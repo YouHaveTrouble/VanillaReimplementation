@@ -3,10 +3,10 @@ package net.minestom.vanilla;
 import net.minestom.server.MinecraftServer;
 import net.minestom.server.data.Data;
 import net.minestom.server.data.SerializableData;
-import net.minestom.server.entity.GameMode;
-import net.minestom.server.entity.ItemEntity;
-import net.minestom.server.entity.Player;
+import net.minestom.server.entity.*;
+import net.minestom.server.entity.damage.DamageType;
 import net.minestom.server.event.EventCallback;
+import net.minestom.server.event.entity.EntityAttackEvent;
 import net.minestom.server.event.instance.AddEntityToInstanceEvent;
 import net.minestom.server.event.item.ItemDropEvent;
 import net.minestom.server.event.item.PickupItemEvent;
@@ -15,17 +15,12 @@ import net.minestom.server.event.player.PlayerLoginEvent;
 import net.minestom.server.event.player.PlayerMoveEvent;
 import net.minestom.server.event.player.PlayerSpawnEvent;
 import net.minestom.server.extras.MojangAuth;
-import net.minestom.server.gamedata.loottables.LootTable;
-import net.minestom.server.gamedata.loottables.LootTableManager;
 import net.minestom.server.instance.ExplosionSupplier;
 import net.minestom.server.instance.InstanceContainer;
-import net.minestom.server.instance.block.Block;
-import net.minestom.server.instance.block.CustomBlock;
 import net.minestom.server.item.ItemStack;
 import net.minestom.server.item.Material;
 import net.minestom.server.network.ConnectionManager;
 import net.minestom.server.storage.StorageManager;
-import net.minestom.server.utils.NamespaceID;
 import net.minestom.server.utils.Position;
 import net.minestom.server.utils.Vector;
 import net.minestom.server.utils.time.TimeUnit;
@@ -37,9 +32,6 @@ import net.minestom.vanilla.dimensions.VanillaDimensionTypes;
 import net.minestom.vanilla.generation.VanillaTestGenerator;
 import net.minestom.vanilla.instance.VanillaExplosion;
 import net.minestom.vanilla.system.ServerProperties;
-
-import java.io.FileNotFoundException;
-import java.util.List;
 
 public class PlayerInit {
 
@@ -57,26 +49,26 @@ public class PlayerInit {
         };
         StorageManager storageManager = MinecraftServer.getStorageManager();
         VanillaTestGenerator noiseTestGenerator = new VanillaTestGenerator();
-        overworld = MinecraftServer.getInstanceManager().createInstanceContainer(DimensionType.OVERWORLD, storageManager.getLocation(worldName+"/data")); // TODO: configurable
+        overworld = MinecraftServer.getInstanceManager().createInstanceContainer(DimensionType.OVERWORLD, storageManager.getLocation(worldName + "/data")); // TODO: configurable
         overworld.enableAutoChunkLoad(true);
         overworld.setChunkGenerator(noiseTestGenerator);
         overworld.setData(new SerializableData());
         overworld.setExplosionSupplier(explosionGenerator);
-        overworld.setChunkLoader(new AnvilChunkLoader(storageManager.getLocation(worldName+"/region")));
+        overworld.setChunkLoader(new AnvilChunkLoader(storageManager.getLocation(worldName + "/region")));
 
-        nether = MinecraftServer.getInstanceManager().createInstanceContainer(VanillaDimensionTypes.NETHER, MinecraftServer.getStorageManager().getLocation(worldName+"/DIM-1/data"));
+        nether = MinecraftServer.getInstanceManager().createInstanceContainer(VanillaDimensionTypes.NETHER, MinecraftServer.getStorageManager().getLocation(worldName + "/DIM-1/data"));
         nether.enableAutoChunkLoad(true);
         nether.setChunkGenerator(noiseTestGenerator);
         nether.setData(new SerializableData());
         nether.setExplosionSupplier(explosionGenerator);
-        nether.setChunkLoader(new AnvilChunkLoader(storageManager.getLocation(worldName+"/DIM-1/region")));
+        nether.setChunkLoader(new AnvilChunkLoader(storageManager.getLocation(worldName + "/DIM-1/region")));
 
-        end = MinecraftServer.getInstanceManager().createInstanceContainer(VanillaDimensionTypes.END, MinecraftServer.getStorageManager().getLocation(worldName+"/DIM1/data"));
+        end = MinecraftServer.getInstanceManager().createInstanceContainer(VanillaDimensionTypes.END, MinecraftServer.getStorageManager().getLocation(worldName + "/DIM1/data"));
         end.enableAutoChunkLoad(true);
         end.setChunkGenerator(noiseTestGenerator);
         end.setData(new SerializableData());
         end.setExplosionSupplier(explosionGenerator);
-        end.setChunkLoader(new AnvilChunkLoader(storageManager.getLocation(worldName+"/DIM1/region")));
+        end.setChunkLoader(new AnvilChunkLoader(storageManager.getLocation(worldName + "/DIM1/region")));
 
         // Load some chunks beforehand
         int loopStart = -2;
@@ -91,8 +83,8 @@ public class PlayerInit {
         EventCallback<AddEntityToInstanceEvent> callback = event -> {
             event.getEntity().setData(new SerializableData());
             Data data = event.getEntity().getData();
-            if(event.getEntity() instanceof Player) {
-                data.set(NetherPortalBlock.PORTAL_COOLDOWN_TIME_KEY, 5*20L, Long.class);
+            if (event.getEntity() instanceof Player) {
+                data.set(NetherPortalBlock.PORTAL_COOLDOWN_TIME_KEY, 5 * 20L, Long.class);
             }
         };
         overworld.addEventCallback(AddEntityToInstanceEvent.class, callback);
@@ -109,7 +101,7 @@ public class PlayerInit {
             }
         });
 
-        if(Boolean.parseBoolean(properties.get("online-mode"))) {
+        if (Boolean.parseBoolean(properties.get("online-mode"))) {
             MojangAuth.init();
         }
 
@@ -130,28 +122,29 @@ public class PlayerInit {
                 float velocityY = player.getVelocity().getY();
                 float velocityZ = player.getVelocity().getZ();
 
-                float dx = moveEvent.getNewPosition().getX()-currentX;
-                float dy = moveEvent.getNewPosition().getY()-currentY;
-                float dz = moveEvent.getNewPosition().getZ()-currentZ;
+                float dx = moveEvent.getNewPosition().getX() - currentX;
+                float dy = moveEvent.getNewPosition().getY() - currentY;
+                float dz = moveEvent.getNewPosition().getZ() - currentZ;
 
-                float actualDisplacement = dx*dx+dy*dy+dz*dz;
-                float expectedDisplacement = velocityX*velocityX+velocityY*velocityY+velocityZ*velocityZ;
+                float actualDisplacement = dx * dx + dy * dy + dz * dz;
+                float expectedDisplacement = velocityX * velocityX + velocityY * velocityY + velocityZ * velocityZ;
 
                 float upperLimit = 100; // TODO: 300 if elytra deployed
 
-                if(actualDisplacement - expectedDisplacement >= upperLimit) {
+                if (actualDisplacement - expectedDisplacement >= upperLimit) {
                     moveEvent.setCancelled(true);
                     player.teleport(player.getPosition()); // force teleport to previous position
-                    System.out.println(player.getUsername()+" moved too fast! "+dx+" "+dy+" "+dz);
+                    System.out.println(player.getUsername() + " moved too fast! " + dx + " " + dy + " " + dz);
                 }
             });
 
             player.addEventCallback(PlayerBlockBreakEvent.class, event -> {
-                VanillaBlocks.dropOnBreak(player.getInstance(), event.getBlockPosition());
+                if (!event.getPlayer().getGameMode().equals(GameMode.CREATIVE))
+                    VanillaBlocks.dropOnBreak(player.getInstance(), event.getBlockPosition());
             });
 
             player.addEventCallback(PlayerSpawnEvent.class, event -> {
-                if(event.isFirstSpawn()) {
+                if (event.isFirstSpawn()) {
                     player.setGameMode(GameMode.CREATIVE);
                     player.teleport(new Position(185, 100, 227));
                     player.getInventory().addItemStack(new ItemStack(Material.OBSIDIAN, (byte) 1));
@@ -174,6 +167,7 @@ public class PlayerInit {
                 Vector velocity = player.getPosition().clone().getDirection().multiply(6);
                 itemEntity.setVelocity(velocity);
             });
+
         });
     }
 }

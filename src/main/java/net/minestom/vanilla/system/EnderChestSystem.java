@@ -16,7 +16,7 @@ public class EnderChestSystem {
 
     public Inventory get(Player player) {
         // TODO: use UUID in future?
-        Inventory inv = inventories.get(player.getUsername());
+        Inventory inv = inventories.get(player.getUuid().toString());
         if(inv == null) {
             inv = new Inventory(InventoryType.CHEST_3_ROW, "EnderChest of "+player.getUsername());
             inventories.set(player.getUsername(), inv, Inventory.class);

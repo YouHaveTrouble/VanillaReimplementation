@@ -15,7 +15,9 @@ public enum VanillaCommands {
     ME(MeCommand::new),
     STOP(StopCommand::new),
     HELP(HelpCommand::new),
-    SAVE_ALL(SaveAllCommand::new),
+    TELEPORT(TeleportCommand::new)
+    // Completely broken, cpu drainer
+    //SAVE_ALL(SaveAllCommand::new),
     ;
 
     private final Supplier<Command> commandCreator;

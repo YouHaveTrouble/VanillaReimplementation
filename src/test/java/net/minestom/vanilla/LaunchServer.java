@@ -2,15 +2,9 @@ package net.minestom.vanilla;
 
 import net.minestom.server.MinecraftServer;
 import net.minestom.server.command.CommandManager;
-import net.minestom.server.entity.Player;
 import net.minestom.server.gamedata.loottables.LootTableManager;
 import net.minestom.server.instance.block.BlockManager;
-import net.minestom.server.item.ItemStack;
-import net.minestom.server.item.Material;
 import net.minestom.server.network.ConnectionManager;
-import net.minestom.server.network.packet.server.play.DeclareRecipesPacket;
-import net.minestom.server.recipe.RecipeManager;
-import net.minestom.server.recipe.ShapelessRecipe;
 import net.minestom.vanilla.anvil.FileSystemStorage;
 import net.minestom.vanilla.blocks.VanillaBlocks;
 import net.minestom.vanilla.commands.VanillaCommands;
@@ -45,9 +39,10 @@ public class LaunchServer {
         ServerProperties properties = new ServerProperties(new File(".", "server.properties"));
         PlayerInit.init(properties);
 
+        ConnectionManager connectionManager = MinecraftServer.getConnectionManager();
+
 
         MinecraftServer.getSchedulerManager().buildShutdownTask(() -> {
-            ConnectionManager connectionManager = MinecraftServer.getConnectionManager();
             connectionManager.getOnlinePlayers().forEach(player -> {
                 // TODO: Saving
                 player.kick("Server is closing.");

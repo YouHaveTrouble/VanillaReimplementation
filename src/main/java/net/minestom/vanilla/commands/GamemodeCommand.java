@@ -57,7 +57,7 @@ public class GamemodeCommand extends Command {
         Optional<Player> target = ((Player)player).getInstance().getPlayers().stream().filter(p -> p.getUsername().equalsIgnoreCase(targetName)).findFirst();
         if (target.isPresent()) {
             target.get().setGameMode(mode);
-            player.sendMessage(ColoredText.ofFormat("{@commands.gamemode.success.other,"+targetName+","+gamemodeName+"}").toString());
+            player.sendMessage(String.valueOf(ColoredText.ofFormat("{@commands.gamemode.success.other,"+targetName+","+gamemodeName+"}")));
         } else {
             player.sendMessage(ColoredText.ofFormat("{@argument.player.unknown}").toString());
         }
