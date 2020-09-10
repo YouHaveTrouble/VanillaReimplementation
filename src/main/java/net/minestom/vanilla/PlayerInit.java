@@ -182,6 +182,8 @@ public class PlayerInit {
                     float damage;
                     if (victim.isInvulnerable())
                         return;
+                    if (victim instanceof Player && ((Player) victim).getGameMode().equals(GameMode.CREATIVE))
+                        return;
                     try {
                         WeaponStats stats = DefaultDamageValues.getDamageValues().get(attacker.getItemInMainHand().getMaterial());
                         damage = stats.getAttackDamage();
