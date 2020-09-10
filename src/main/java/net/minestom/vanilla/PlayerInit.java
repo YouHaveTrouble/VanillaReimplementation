@@ -2,12 +2,14 @@ package net.minestom.vanilla;
 
 import net.minestom.server.MinecraftServer;
 import net.minestom.server.data.Data;
-import net.minestom.server.data.SerializableData;
 import net.minestom.server.data.SerializableDataImpl;
 import net.minestom.server.entity.GameMode;
 import net.minestom.server.entity.ItemEntity;
+import net.minestom.server.entity.LivingEntity;
 import net.minestom.server.entity.Player;
+import net.minestom.server.entity.damage.DamageType;
 import net.minestom.server.event.EventCallback;
+import net.minestom.server.event.entity.EntityAttackEvent;
 import net.minestom.server.event.instance.AddEntityToInstanceEvent;
 import net.minestom.server.event.item.ItemDropEvent;
 import net.minestom.server.event.item.PickupItemEvent;
@@ -29,6 +31,9 @@ import net.minestom.server.world.DimensionType;
 import net.minestom.vanilla.anvil.AnvilChunkLoader;
 import net.minestom.vanilla.blocks.NetherPortalBlock;
 import net.minestom.vanilla.blocks.VanillaBlocks;
+import net.minestom.vanilla.damage.DamageImmunity;
+import net.minestom.vanilla.damage.DefaultDamageValues;
+import net.minestom.vanilla.damage.WeaponStats;
 import net.minestom.vanilla.dimensions.VanillaDimensionTypes;
 import net.minestom.vanilla.generation.VanillaTestGenerator;
 import net.minestom.vanilla.instance.VanillaExplosion;
@@ -140,13 +145,14 @@ public class PlayerInit {
             });
 
             player.addEventCallback(PlayerBlockBreakEvent.class, event -> {
-                VanillaBlocks.dropOnBreak(player.getInstance(), event.getBlockPosition());
+                if (player.getGameMode() != GameMode.CREATIVE)
+                    VanillaBlocks.dropOnBreak(player.getInstance(), event.getBlockPosition());
             });
 
             player.addEventCallback(PlayerSpawnEvent.class, event -> {
                 if (event.isFirstSpawn()) {
-                    player.setGameMode(GameMode.CREATIVE);
-                    player.teleport(new Position(185, 100, 227));
+                    player.setGameMode(GameMode.SURVIVAL);
+                    player.teleport(new Position(176, 72, 236));
                     player.getInventory().addItemStack(new ItemStack(Material.OBSIDIAN, (byte) 1));
                     player.getInventory().addItemStack(new ItemStack(Material.FLINT_AND_STEEL, (byte) 1));
                     player.getInventory().addItemStack(new ItemStack(Material.RED_BED, (byte) 1));
@@ -167,6 +173,41 @@ public class PlayerInit {
                 Vector velocity = player.getPosition().clone().getDirection().multiply(6);
                 itemEntity.setVelocity(velocity);
             });
+
+            // Basic combat
+            player.addEventCallback(EntityAttackEvent.class, event -> {
+                if (event.getSource() instanceof LivingEntity && event.getTarget() instanceof LivingEntity) {
+                    LivingEntity victim = (LivingEntity) event.getTarget();
+                    LivingEntity attacker = (LivingEntity) event.getSource();
+                    float damage;
+                    if (victim.isInvulnerable())
+                        return;
+                    try {
+                        WeaponStats stats = DefaultDamageValues.getDamageValues().get(attacker.getItemInMainHand().getMaterial());
+                        damage = stats.getAttackDamage();
+                    } catch (Exception e) {
+                        damage = 1F;
+                    }
+                    victim.damage(DamageType.fromEntity(event.getSource()), damage);
+                    float multiplier;
+                    Vector baseVelocity = attacker.getPosition().clone().getDirection();
+                    if (attacker instanceof Player && ((Player) attacker).isSprinting()) {
+                        multiplier = 6F;
+                        if (baseVelocity.getY() < 1.2F) {
+                            baseVelocity.setY(1.2F);
+                        }
+                    } else {
+                        multiplier = 4F;
+                        if (baseVelocity.getY() < 1.5F) {
+                            baseVelocity.setY(1.5F);
+                        }
+                    }
+                    Vector velocity = baseVelocity.multiply(multiplier);
+                    victim.setVelocity(velocity);
+                    DamageImmunity.grantImmunity(victim);
+                }
+            });
+
         });
     }
 }
