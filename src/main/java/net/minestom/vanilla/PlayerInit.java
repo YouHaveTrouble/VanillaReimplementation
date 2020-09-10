@@ -1,13 +1,13 @@
 package net.minestom.vanilla;
 
 import net.minestom.server.MinecraftServer;
-import net.minestom.server.chat.ColoredText;
 import net.minestom.server.data.Data;
 import net.minestom.server.data.SerializableData;
-import net.minestom.server.entity.*;
-import net.minestom.server.entity.damage.DamageType;
+import net.minestom.server.data.SerializableDataImpl;
+import net.minestom.server.entity.GameMode;
+import net.minestom.server.entity.ItemEntity;
+import net.minestom.server.entity.Player;
 import net.minestom.server.event.EventCallback;
-import net.minestom.server.event.entity.EntityAttackEvent;
 import net.minestom.server.event.instance.AddEntityToInstanceEvent;
 import net.minestom.server.event.item.ItemDropEvent;
 import net.minestom.server.event.item.PickupItemEvent;
@@ -29,13 +29,9 @@ import net.minestom.server.world.DimensionType;
 import net.minestom.vanilla.anvil.AnvilChunkLoader;
 import net.minestom.vanilla.blocks.NetherPortalBlock;
 import net.minestom.vanilla.blocks.VanillaBlocks;
-import net.minestom.vanilla.damage.DamageImmunity;
-import net.minestom.vanilla.damage.DefaultDamageValues;
-import net.minestom.vanilla.damage.WeaponStats;
 import net.minestom.vanilla.dimensions.VanillaDimensionTypes;
 import net.minestom.vanilla.generation.VanillaTestGenerator;
 import net.minestom.vanilla.instance.VanillaExplosion;
-import net.minestom.vanilla.math.RayCast;
 import net.minestom.vanilla.system.ServerProperties;
 
 public class PlayerInit {
@@ -57,21 +53,21 @@ public class PlayerInit {
         overworld = MinecraftServer.getInstanceManager().createInstanceContainer(DimensionType.OVERWORLD, storageManager.getLocation(worldName + "/data")); // TODO: configurable
         overworld.enableAutoChunkLoad(true);
         overworld.setChunkGenerator(noiseTestGenerator);
-        overworld.setData(new SerializableData());
+        overworld.setData(new SerializableDataImpl());
         overworld.setExplosionSupplier(explosionGenerator);
         overworld.setChunkLoader(new AnvilChunkLoader(storageManager.getLocation(worldName + "/region")));
 
         nether = MinecraftServer.getInstanceManager().createInstanceContainer(VanillaDimensionTypes.NETHER, MinecraftServer.getStorageManager().getLocation(worldName + "/DIM-1/data"));
         nether.enableAutoChunkLoad(true);
         nether.setChunkGenerator(noiseTestGenerator);
-        nether.setData(new SerializableData());
+        nether.setData(new SerializableDataImpl());
         nether.setExplosionSupplier(explosionGenerator);
         nether.setChunkLoader(new AnvilChunkLoader(storageManager.getLocation(worldName + "/DIM-1/region")));
 
         end = MinecraftServer.getInstanceManager().createInstanceContainer(VanillaDimensionTypes.END, MinecraftServer.getStorageManager().getLocation(worldName + "/DIM1/data"));
         end.enableAutoChunkLoad(true);
         end.setChunkGenerator(noiseTestGenerator);
-        end.setData(new SerializableData());
+        end.setData(new SerializableDataImpl());
         end.setExplosionSupplier(explosionGenerator);
         end.setChunkLoader(new AnvilChunkLoader(storageManager.getLocation(worldName + "/DIM1/region")));
 
@@ -86,7 +82,7 @@ public class PlayerInit {
             }
 
         EventCallback<AddEntityToInstanceEvent> callback = event -> {
-            event.getEntity().setData(new SerializableData());
+            event.getEntity().setData(new SerializableDataImpl());
             Data data = event.getEntity().getData();
             if (event.getEntity() instanceof Player) {
                 data.set(NetherPortalBlock.PORTAL_COOLDOWN_TIME_KEY, 5 * 20L, Long.class);
@@ -144,8 +140,7 @@ public class PlayerInit {
             });
 
             player.addEventCallback(PlayerBlockBreakEvent.class, event -> {
-                if (!event.getPlayer().getGameMode().equals(GameMode.CREATIVE))
-                    VanillaBlocks.dropOnBreak(player.getInstance(), event.getBlockPosition());
+                VanillaBlocks.dropOnBreak(player.getInstance(), event.getBlockPosition());
             });
 
             player.addEventCallback(PlayerSpawnEvent.class, event -> {
@@ -172,38 +167,6 @@ public class PlayerInit {
                 Vector velocity = player.getPosition().clone().getDirection().multiply(6);
                 itemEntity.setVelocity(velocity);
             });
-
-            // Basic combat
-            //TODO yell at people to get invulnerable status for LivingEntity
-            player.addEventCallback(EntityAttackEvent.class, event -> {
-
-                if (event.getSource() instanceof LivingEntity && event.getTarget() instanceof LivingEntity) {
-                    LivingEntity victim = (LivingEntity) event.getTarget();
-                    if (victim.isInvulnerable()) {
-                        return;
-                    }
-                    LivingEntity attacker = (Player) event.getSource();
-                    ItemStack item = attacker.getItemInMainHand();
-                    float damage;
-                    try {
-                        WeaponStats stats = DefaultDamageValues.getDamageValues().get(item.getMaterial());
-                        damage = stats.getAttackDamage();
-                    } catch (Exception e) {
-                        damage = 1F;
-                    }
-
-                    victim.damage(DamageType.fromEntity(event.getSource()), damage);
-
-
-
-                    Vector velocity = attacker.getPosition().clone().getDirection().add(0,0.2F,0).multiply();
-                    victim.setVelocity(velocity);
-
-                    DamageImmunity.grantImmunity(victim);
-
-                }
-            });
-
         });
     }
 }
