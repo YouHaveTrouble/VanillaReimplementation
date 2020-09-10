@@ -1,6 +1,7 @@
 package net.minestom.vanilla;
 
 import net.minestom.server.MinecraftServer;
+import net.minestom.server.chat.ColoredText;
 import net.minestom.server.data.Data;
 import net.minestom.server.data.SerializableData;
 import net.minestom.server.entity.*;
@@ -28,11 +29,13 @@ import net.minestom.server.world.DimensionType;
 import net.minestom.vanilla.anvil.AnvilChunkLoader;
 import net.minestom.vanilla.blocks.NetherPortalBlock;
 import net.minestom.vanilla.blocks.VanillaBlocks;
+import net.minestom.vanilla.damage.DamageImmunity;
 import net.minestom.vanilla.damage.DefaultDamageValues;
 import net.minestom.vanilla.damage.WeaponStats;
 import net.minestom.vanilla.dimensions.VanillaDimensionTypes;
 import net.minestom.vanilla.generation.VanillaTestGenerator;
 import net.minestom.vanilla.instance.VanillaExplosion;
+import net.minestom.vanilla.math.RayCast;
 import net.minestom.vanilla.system.ServerProperties;
 
 public class PlayerInit {
@@ -171,26 +174,33 @@ public class PlayerInit {
             });
 
             // Basic combat
+            //TODO yell at people to get invulnerable status for LivingEntity
             player.addEventCallback(EntityAttackEvent.class, event -> {
-                if (event.getSource() instanceof LivingEntity) {
 
-                    LivingEntity attacker = (LivingEntity) event.getSource();
-
+                if (event.getSource() instanceof LivingEntity && event.getTarget() instanceof LivingEntity) {
+                    LivingEntity victim = (LivingEntity) event.getTarget();
+                    if (victim.isInvulnerable()) {
+                        return;
+                    }
+                    LivingEntity attacker = (Player) event.getSource();
+                    ItemStack item = attacker.getItemInMainHand();
                     float damage;
-
                     try {
-                        WeaponStats stats = DefaultDamageValues.getDamageValues().get(attacker.getItemInMainHand().getMaterial());
+                        WeaponStats stats = DefaultDamageValues.getDamageValues().get(item.getMaterial());
                         damage = stats.getAttackDamage();
                     } catch (Exception e) {
                         damage = 1F;
                     }
 
-                    if (event.getTarget() instanceof LivingEntity) {
-                        LivingEntity victim = (LivingEntity) event.getTarget();
-                        System.out.println(victim.getHealth());
-                        victim.damage(DamageType.fromEntity(event.getSource()), damage);
-                        System.out.println(victim.getHealth());
-                    }
+                    victim.damage(DamageType.fromEntity(event.getSource()), damage);
+
+
+
+                    Vector velocity = attacker.getPosition().clone().getDirection().add(0,0.2F,0).multiply();
+                    victim.setVelocity(velocity);
+
+                    DamageImmunity.grantImmunity(victim);
+
                 }
             });
 
