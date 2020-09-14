@@ -21,7 +21,7 @@ public class PlayerCombatant {
     }
 
     public void setCooldown(double weaponAttackSpeed) {
-        double timeInTicks = 20*weaponAttackSpeed;
+        double timeInTicks = 20/weaponAttackSpeed;
         refreshLastAttack();
         long cooldownMilli = (long) (50000000L*timeInTicks);
         cooldown = lastAttack+cooldownMilli;
