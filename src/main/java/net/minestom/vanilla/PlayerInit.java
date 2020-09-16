@@ -1,6 +1,7 @@
 package net.minestom.vanilla;
 
 import net.minestom.server.MinecraftServer;
+import net.minestom.server.attribute.Attribute;
 import net.minestom.server.data.Data;
 import net.minestom.server.data.SerializableDataImpl;
 import net.minestom.server.entity.GameMode;
@@ -36,6 +37,7 @@ import net.minestom.vanilla.dimensions.VanillaDimensionTypes;
 import net.minestom.vanilla.generation.VanillaTestGenerator;
 import net.minestom.vanilla.instance.VanillaExplosion;
 import net.minestom.vanilla.system.ServerProperties;
+import java.util.UUID;
 
 public class PlayerInit {
 
@@ -156,6 +158,7 @@ public class PlayerInit {
                     player.setGameMode(GameMode.SURVIVAL);
                     player.teleport(new Position(176, 72, 236));
                     ItemStack axe = new ItemStack(Material.WOODEN_AXE, (byte) 1);
+                    UUID uuid = UUID.nameUUIDFromBytes("base".getBytes());
                     player.getInventory().addItemStack(axe);
                     player.getInventory().addItemStack(new ItemStack(Material.WOODEN_SWORD, (byte) 1));
 
@@ -172,7 +175,6 @@ public class PlayerInit {
 
             player.addEventCallback(ItemDropEvent.class, event -> {
                 ItemStack droppedItem = event.getItemStack();
-
                 ItemEntity itemEntity = new ItemEntity(droppedItem, player.getPosition().clone().add(0, 1.5f, 0));
                 itemEntity.setPickupDelay(500, TimeUnit.MILLISECOND);
                 itemEntity.setInstance(player.getInstance());
@@ -187,37 +189,42 @@ public class PlayerInit {
 
                 LivingEntity victim = (LivingEntity) event.getTarget();
                 LivingEntity attacker = (LivingEntity) event.getSource();
-                float damage;
-                float attackSpeed;
 
                 if (victim.isInvulnerable())
                     return;
                 if (victim instanceof Player && ((Player) victim).getGameMode().equals(GameMode.CREATIVE))
                     return;
 
-                if (attacker instanceof Player && combatants.getCombatant(attacker.getUuid()).isOnCooldown()) {
-                    //TODO reduce damage by percentage of cooldown
-                }
-
                 ItemStack murderWeapon = attacker.getItemInMainHand();
-                try {
-                    WeaponStats stats = DefaultDamageValues.getDamageValues().get(murderWeapon.getMaterial());
+                float damage = 1F;
+                float attackSpeed = 4F;
+
+                try { // Try to get default weapon stats
+                    WeaponStats stats = DefaultDamageValues.getVanillaDamageValues().get(murderWeapon.getMaterial());
                     damage = stats.getAttackDamage();
                     attackSpeed = stats.getAttackSpeed();
-                } catch (Exception e) {
-                    damage = 1F;
-                    attackSpeed = 1.5F;
-                }
+                } catch (Exception ignored) {}
 
+                // damage reduction from attack speed
+                double ticksSince = combatants.getCombatant(player.getUuid()).getTicksFromLastAction();
+                float attackStrength = CombatUtils.getAttackStrengthScale(0.5F, (float) ticksSince, attackSpeed);
+                damage *= 0.2F + attackStrength * attackStrength * 0.8F;
+
+                // TODO damage reduction from victim armor
+
+                // temp logging for testing
+                System.out.println( "ticks: " + ticksSince + " damage:" + damage);
+
+                // TODO rethink how attack speed is applied
+                attacker.setAttribute(Attribute.ATTACK_SPEED, attackSpeed);
+
+                // damage the victim, apply cooldowns and other funny stuff
                 victim.damage(DamageType.fromEntity(event.getSource()), damage);
-
+                // TODO make knockback velocity vector closer to vanilla
                 victim.setVelocity(CombatUtils.getKnockback(attacker));
                 CombatUtils.grantImmunity(victim);
-                combatants.getCombatant(attacker.getUuid()).setCooldown(attackSpeed);
-
+                combatants.getCombatant(attacker.getUuid()).refreshLastAttack();
             });
-
         });
     }
-
 }

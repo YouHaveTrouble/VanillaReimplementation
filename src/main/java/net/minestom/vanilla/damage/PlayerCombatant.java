@@ -1,7 +1,5 @@
 package net.minestom.vanilla.damage;
 
-import java.time.Instant;
-
 public class PlayerCombatant {
 
     long lastAttack;
@@ -16,15 +14,8 @@ public class PlayerCombatant {
         return lastAttack;
     }
 
-    private void refreshLastAttack() {
-        lastAttack = getNowNano();
-    }
-
-    public void setCooldown(double weaponAttackSpeed) {
-        double timeInTicks = 20/weaponAttackSpeed;
-        refreshLastAttack();
-        long cooldownMilli = (long) (50000000L*timeInTicks);
-        cooldown = lastAttack+cooldownMilli;
+    public void refreshLastAttack() {
+        lastAttack = CombatUtils.getNowNano();
     }
 
     public long getCooldown() {
@@ -32,15 +23,16 @@ public class PlayerCombatant {
     }
 
     public boolean isOnCooldown() {
-        return cooldown >= getNowNano();
+        return cooldown >= CombatUtils.getNowNano();
     }
 
-    private long getNowNano() {
-        Instant inst = Instant.now();
-        long time = inst.getEpochSecond();
-        time *= 1000000000L;
-        time += inst.getNano();
-        return time;
+    public double getTicksFromLastAction() {
+        long now = CombatUtils.getNowNano();
+        long nanosSince = now - cooldown;
+        long msSince = nanosSince / 10000000;
+        return Math.round(msSince) / 5F;
     }
+
+
 
 }
